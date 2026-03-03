@@ -4,6 +4,7 @@ import { gameSales as chartData } from "./data/gameSales.js";
 // --- DOM helpers ---
 const yearSelect = document.getElementById("yearSelect");
 const platformSelect = document.getElementById("platformSelect");
+const publisherSelect = document.getElementById("publisherSelect");
 const metricSelect = document.getElementById("metricSelect");
 const chartTypeSelect = document.getElementById("chartType");
 const renderBtn = document.getElementById("renderBtn");
@@ -15,12 +16,15 @@ let currentChart = null;
 // --- Populate dropdowns from data ---
 const years = [...new Set(chartData.map(r => r.year))];
 const platforms = [...new Set(chartData.map(r => r.platform))];
+const publishers = [...new Set(chartData.map(r => r.publisher))]
 
 years.forEach(y => yearSelect.add(new Option(y, y)));
 platforms.forEach(h => platformSelect.add(new Option(h, h)));
+publishers.forEach(p => publisherSelect.add(new Option(p, p)));
 
 yearSelect.value = years[0];
 platformSelect.value = platforms[0];
+publisherSelect.value = platforms[0];
 
 // Preview first 6 rows
 dataPreview.textContent = JSON.stringify(chartData.slice(0, 6), null, 2);
@@ -30,6 +34,7 @@ renderBtn.addEventListener("click", () => {
   const chartType = chartTypeSelect.value;
   const year = Number(yearSelect.value);
   const platform = platformSelect.value;
+  const publisher = publisherSelect.value;
   const metric = metricSelect.value;
 
   // Destroy old chart if it exists (common Chart.js gotcha)
@@ -136,16 +141,20 @@ function scatterTripsVsTemp(year) {
 
 // DOUGHNUT — member vs casual share for one platform + year
 function doughnutMemberVsCasual(year, platform) {
-  const row = chartData.find(r => r.year === year && r.platform === platform);
+  const row = chartData.find(r => r.year == year && r.platform == platform);
 
-  const member = Math.round(row.memberShare * 100);
-  const casual = 100 - member;
+  const allRegions = chartData.filter(r => r.region).length
+
+  const NA = (chartData.filter(r => r.region === "NA").length)/allRegions;
+  const EU = (chartData.fill(r => r.region === "EU").length)/allRegions;
+  const JP = (chartData.fill(r => r.region === "JP").length)/allRegions;
+  const ASIA = (chartData.fill(r => r.region === "ASIA").length)/allRegions;
 
   return {
     type: "doughnut",
     data: {
-      labels: ["Members (%)", "Casual (%)"],
-      datasets: [{ label: "Rider mix", data: [member, casual] }]
+      labels: ["NA", "EU", "JP", "ASIA"],
+      datasets: [{ label: "Rider mix", data: [NA, EU, JP, ASIA] }]
     },
     options: {
       plugins: {
@@ -155,15 +164,14 @@ function doughnutMemberVsCasual(year, platform) {
   };
 }
 
-// RADAR — compare neighborhoods across multiple metrics for one year
+// RADAR — compare publishers across multiple metrics for one year
 function radarCompareNeighborhoods(year) {
-  const rows = chartData.filter(r => r.year === year);
-
-  const metrics = ["trips", "revenueUSD", "avgDurationMin", "incidents"];
+  const rows = chartData.filter(r => r.year == year);
+  const metrics = ["unitsM", "revenueUSD", "priceUSD", "reviewScore", "esports"];
   const labels = metrics;
 
   const datasets = rows.map(r => ({
-    label: r.platform,
+    label: r.publisher,
     data: metrics.map(y => r[y])
   }));
 
